@@ -1,11 +1,12 @@
 using System.Collections.Generic;
-using System.Linq;
 using Vintagestory.API.Common;
 
 namespace ChunkQueueTweaks;
 
 internal sealed class PlayerStateCleaner
 {
+    private readonly List<string> _stalePlayerIds = new();
+
     public void Clean(Dictionary<string, PlayerThrottleState> states, IPlayer[] onlinePlayers)
     {
         if (states.Count == 0)
@@ -13,8 +14,26 @@ internal sealed class PlayerStateCleaner
             return;
         }
 
-        var onlineIds = onlinePlayers.Select(player => player.PlayerUID).ToHashSet();
-        foreach (var playerId in states.Keys.Where(playerId => !onlineIds.Contains(playerId)).ToArray())
+        _stalePlayerIds.Clear();
+        foreach (var playerId in states.Keys)
+        {
+            var isOnline = false;
+            foreach (var player in onlinePlayers)
+            {
+                if (player.PlayerUID == playerId)
+                {
+                    isOnline = true;
+                    break;
+                }
+            }
+
+            if (!isOnline)
+            {
+                _stalePlayerIds.Add(playerId);
+            }
+        }
+
+        foreach (var playerId in _stalePlayerIds)
         {
             states.Remove(playerId);
         }

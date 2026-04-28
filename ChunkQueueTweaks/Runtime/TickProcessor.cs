@@ -6,77 +6,111 @@ namespace ChunkQueueTweaks;
 
 internal sealed class TickProcessor
 {
+    private const double CleanupIntervalSeconds = 5.0;
+
+    private readonly PlayerStateCleaner _playerStateCleaner = new();
+    private readonly PlayerEligibility _playerEligibility = new();
+    private readonly PlayerStateProvider _playerStateProvider = new();
+    private readonly CorrectionClock _correctionClock = new();
+    private readonly TeleportGraceClock _teleportGraceClock = new();
+    private readonly MovementSampler _movementSampler = new();
+    private readonly SafePositionUpdater _safePositionUpdater = new();
+    private readonly TeleportSignalDetector _teleportSignalDetector = new();
+    private readonly TeleportHeuristicEvaluator _teleportHeuristicEvaluator = new();
+    private readonly TeleportAcceptanceHandler _teleportAcceptanceHandler = new();
+    private readonly HardMovementViolationEvaluator _hardMovementViolationEvaluator = new();
+    private readonly ExtremeViolationScoreUpdater _extremeViolationScoreUpdater = new();
+    private readonly EnforcementDecisionCalculator _enforcementDecisionCalculator = new();
+    private readonly CorrectivePositionApplier _correctivePositionApplier = new();
+    private readonly ChunkRadiusPressureReducer _chunkRadiusPressureReducer = new();
+    private readonly PlayerWarningSender _playerWarningSender = new();
+    private readonly PressureEvaluator _pressureEvaluator = new();
+    private readonly AbuseScoreUpdater _abuseScoreUpdater = new();
+    private readonly ThrottleCalculator _throttleCalculator = new();
+    private readonly VelocityThrottleApplier _velocityThrottleApplier = new();
+    private readonly GlobalPressureEvaluator _globalPressureEvaluator = new();
+    private double _cleanupElapsedSeconds = CleanupIntervalSeconds;
+
     public GlobalPressureState Process(ICoreServerAPI api, Dictionary<string, PlayerThrottleState> states, ChunkQueueTweaksConfig config, GlobalPressureState globalPressure, float dt)
     {
         var players = api.World.AllOnlinePlayers;
-        new PlayerStateCleaner().Clean(states, players);
-
         int pressuredPlayers = 0;
         var tickSeconds = Math.Max(dt, config.TickIntervalMs / 1000f);
 
+        _cleanupElapsedSeconds += tickSeconds;
+        if (_cleanupElapsedSeconds >= CleanupIntervalSeconds)
+        {
+            _playerStateCleaner.Clean(states, players);
+            _cleanupElapsedSeconds = 0.0;
+        }
+
         foreach (var player in players)
         {
-            if (player is not IServerPlayer serverPlayer || !new PlayerEligibility().IsEligible(serverPlayer, config))
+            if (player is not IServerPlayer serverPlayer || !_playerEligibility.IsEligible(serverPlayer, config))
             {
                 continue;
             }
 
-            var state = new PlayerStateProvider().Get(states, serverPlayer);
+            var state = _playerStateProvider.Get(states, serverPlayer);
             state.CorrectedLastTick = false;
             state.ObservedTotalSeconds += tickSeconds;
-            new CorrectionClock().Tick(state, tickSeconds);
-            new TeleportGraceClock().Tick(state, tickSeconds);
+            _correctionClock.Tick(state, tickSeconds);
+            _teleportGraceClock.Tick(state, tickSeconds);
 
-            var sample = new MovementSampler().Sample(serverPlayer, state, tickSeconds);
+            var sample = _movementSampler.Sample(serverPlayer, state, tickSeconds);
             if (!sample.HasPreviousPosition)
             {
-                new SafePositionUpdater().Update(state, sample, config);
+                _safePositionUpdater.Update(state, sample, config);
                 continue;
             }
 
-            var teleportSignal = new TeleportSignalDetector().Detect(serverPlayer, sample);
+            var teleportSignal = _teleportSignalDetector.Detect(serverPlayer, sample);
             if (!teleportSignal.IsTeleport)
             {
-                teleportSignal = new TeleportHeuristicEvaluator().Evaluate(sample, state, config);
+                teleportSignal = _teleportHeuristicEvaluator.Evaluate(sample, state, config);
             }
 
             if (teleportSignal.IsTeleport)
             {
-                new TeleportAcceptanceHandler().Accept(serverPlayer, state, sample, config);
+                _teleportAcceptanceHandler.Accept(serverPlayer, state, sample, config);
                 continue;
             }
 
-            var hardViolation = new HardMovementViolationEvaluator().Evaluate(sample, state, config);
-            state.ExtremeViolationScore = new ExtremeViolationScoreUpdater().Update(state.ExtremeViolationScore, sample, hardViolation, config, tickSeconds);
-            hardViolation = new HardMovementViolationEvaluator().Evaluate(sample, state, config);
-            var enforcement = new EnforcementDecisionCalculator().Calculate(hardViolation, state);
+            var hardViolation = _hardMovementViolationEvaluator.Evaluate(sample, state, config);
+            state.ExtremeViolationScore = _extremeViolationScoreUpdater.Update(state.ExtremeViolationScore, sample, hardViolation, config, tickSeconds);
+            if (!hardViolation.IsViolation && sample.Speed > config.MaxSafeHorizontalSpeed && state.ExtremeViolationScore >= config.MaxExtremeViolationScore)
+            {
+                hardViolation = new HardMovementViolation(true, "repeated high-speed movement");
+            }
+
+            var enforcement = _enforcementDecisionCalculator.Calculate(hardViolation, state);
 
             if (enforcement.ShouldCorrect)
             {
-                new CorrectivePositionApplier().Apply(serverPlayer, state);
-                new ChunkRadiusPressureReducer().Reduce(serverPlayer, config);
-                new PlayerWarningSender().Send(serverPlayer, state, config, state.ObservedTotalSeconds);
+                _correctivePositionApplier.Apply(serverPlayer, state);
+                _chunkRadiusPressureReducer.Reduce(serverPlayer, config);
+                _playerWarningSender.Send(serverPlayer, state, config, state.ObservedTotalSeconds);
                 state.CorrectionCooldownMs = config.CorrectionCooldownMs;
                 state.CorrectedLastTick = true;
                 state.LastThrottleFactor = 0.0;
                 continue;
             }
 
-            new SafePositionUpdater().Update(state, sample, config);
+            _safePositionUpdater.Update(state, sample, config);
 
-            var pressure = new PressureEvaluator().Evaluate(sample, state, config, tickSeconds);
-            state.AbuseScore = new AbuseScoreUpdater().Update(state.AbuseScore, pressure, config, tickSeconds);
+            var pressure = _pressureEvaluator.Evaluate(sample, state, config, tickSeconds);
+            state.AbuseScore = _abuseScoreUpdater.Update(state.AbuseScore, pressure, config, tickSeconds);
 
             if (pressure.IsUnderPressure)
             {
                 pressuredPlayers++;
             }
 
-            var decision = new ThrottleCalculator().Calculate(sample, pressure, state.AbuseScore, config, globalPressure.Active);
-            new VelocityThrottleApplier().Apply(serverPlayer, decision);
+            var decision = _throttleCalculator.Calculate(sample, pressure, state.AbuseScore, config, globalPressure.Active);
+            _velocityThrottleApplier.Apply(serverPlayer, decision);
             state.LastThrottleFactor = decision.Factor;
         }
 
-        return new GlobalPressureState(new GlobalPressureEvaluator().Evaluate(pressuredPlayers, config));
+        return new GlobalPressureState(_globalPressureEvaluator.Evaluate(pressuredPlayers, config));
     }
 }

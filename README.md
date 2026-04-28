@@ -437,6 +437,13 @@ The mod deliberately avoids expensive server operations in the hot path:
 - No background thread coordination.
 - No client-specific detection logic.
 
+The movement tick loop is also designed to avoid unnecessary allocation pressure:
+
+- Reusable runtime services are kept by the tick processor instead of being recreated for each player sample.
+- Disconnected-player state cleanup runs on a slower interval instead of every movement tick.
+- Cleanup uses a reusable scratch list instead of LINQ-based temporary collections.
+- Hard movement enforcement avoids repeated evaluator calls while preserving the same correction decisions.
+
 ## License
 
 No license has been selected yet.
