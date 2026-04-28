@@ -267,17 +267,13 @@ You can override the Vintage Story install path by setting the `VINTAGE_STORY` e
 PowerShell example:
 
 ```powershell
-$env:VINTAGE_STORY = "C:\Users\YourName\AppData\Roaming\Vintagestory"
+$env:VINTAGE_STORY = "<VintageStoryInstallPath>"
 dotnet build .\ChunkQueueTweaks.slnx -c Release
 ```
 
 ## Build Instructions
 
-Run commands from the repository root:
-
-```text
-C:\Users\daytonwatson\source\repos\ChunkQueueTweaks
-```
+Run commands from the repository root, where `ChunkQueueTweaks.slnx` is located.
 
 ### Restore and Build Debug
 
@@ -400,7 +396,7 @@ After installing or tuning, test these scenarios:
 Set `VINTAGE_STORY` to your Vintage Story install folder:
 
 ```powershell
-$env:VINTAGE_STORY = "C:\Path\To\Vintagestory"
+$env:VINTAGE_STORY = "<VintageStoryInstallPath>"
 dotnet build .\ChunkQueueTweaks.slnx -c Release
 ```
 
