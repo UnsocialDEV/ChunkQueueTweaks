@@ -2,7 +2,7 @@
   "type": "code",
   "modid": "chunkqueuetweaks",
   "name": "ChunkQueueTweaks",
-  "authors": [ "daytonwatson" ],
+  "authors": [ "Unsocial" ],
   "description": "Server-side chunk streaming pressure throttle that softly limits excessive player chunk request generation.",
   "version": "1.0.0",
   "side": "Server",
