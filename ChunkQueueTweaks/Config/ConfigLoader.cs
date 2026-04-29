@@ -7,6 +7,8 @@ internal sealed class ConfigLoader
 {
     private const string FileName = "chunkqueuetweaks.json";
 
+    private readonly ConfigNormalizer _configNormalizer = new();
+
     public ChunkQueueTweaksConfig Load(ICoreServerAPI api)
     {
         try
@@ -14,7 +16,7 @@ internal sealed class ConfigLoader
             var config = api.LoadModConfig<ChunkQueueTweaksConfig>(FileName);
             if (config is not null)
             {
-                return new ConfigNormalizer().Normalize(config);
+                return _configNormalizer.Normalize(config);
             }
         }
         catch (Exception exception)

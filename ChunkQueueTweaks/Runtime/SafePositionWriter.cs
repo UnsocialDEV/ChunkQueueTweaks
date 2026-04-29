@@ -4,13 +4,14 @@ internal sealed class SafePositionWriter
 {
     public void Write(PlayerThrottleState state, MovementSample sample)
     {
-        state.HasSafePosition = true;
-        state.LastSafeX = sample.X;
-        state.LastSafeY = sample.Y;
-        state.LastSafeZ = sample.Z;
-        state.LastSafeInternalY = sample.InternalY;
-        state.LastSafeDimensionKey = sample.DimensionKey;
-        state.LastSafeChunkX = sample.ChunkX;
-        state.LastSafeChunkZ = sample.ChunkZ;
+        var safePosition = state.SafePosition;
+        safePosition.HasSafePosition = true;
+        safePosition.LastSafeX = sample.X;
+        safePosition.LastSafeY = sample.Y;
+        safePosition.LastSafeZ = sample.Z;
+        safePosition.LastSafeInternalY = sample.InternalY;
+        safePosition.LastSafeDimensionKey = sample.DimensionKey;
+        safePosition.LastSafeChunkX = sample.ChunkX;
+        safePosition.LastSafeChunkZ = sample.ChunkZ;
     }
 }

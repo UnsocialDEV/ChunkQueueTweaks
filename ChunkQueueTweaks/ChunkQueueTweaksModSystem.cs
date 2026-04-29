@@ -8,10 +8,21 @@ namespace ChunkQueueTweaks;
 public sealed class ChunkQueueTweaksModSystem : ModSystem
 {
     private readonly Dictionary<string, PlayerThrottleState> states = new();
+    private readonly ConfigLoader configLoader = new();
+    private readonly CommandRegistrar commandRegistrar;
+    private readonly TickProcessor tickProcessor = new();
+    private readonly ThrottledPlayerCounter throttledPlayerCounter = new();
+    private readonly CorrectedPlayerCounter correctedPlayerCounter = new();
+    private readonly TeleportGraceCounter teleportGraceCounter = new();
     private ICoreServerAPI? api;
     private ChunkQueueTweaksConfig config = new();
     private long listenerId;
     private GlobalPressureState globalPressure = new();
+
+    public ChunkQueueTweaksModSystem()
+    {
+        commandRegistrar = new CommandRegistrar(this);
+    }
 
     public override bool ShouldLoad(EnumAppSide forSide)
     {
@@ -21,10 +32,10 @@ public sealed class ChunkQueueTweaksModSystem : ModSystem
     public override void StartServerSide(ICoreServerAPI sapi)
     {
         api = sapi;
-        config = new ConfigLoader().Load(sapi);
+        config = configLoader.Load(sapi);
         listenerId = sapi.Event.RegisterGameTickListener(OnTick, OnTickError, config.TickIntervalMs);
         sapi.Event.PlayerDisconnect += OnPlayerDisconnect;
-        new CommandRegistrar(this).Register(sapi);
+        commandRegistrar.Register(sapi);
         sapi.Logger.Notification("ChunkQueueTweaks loaded with {0}ms tick interval.", config.TickIntervalMs);
     }
 
@@ -45,11 +56,11 @@ public sealed class ChunkQueueTweaksModSystem : ModSystem
             config.Enabled,
             states.Count,
             globalPressure.Active,
-            new ThrottledPlayerCounter().Count(states.Values),
-            new CorrectedPlayerCounter().Count(states.Values),
+            throttledPlayerCounter.Count(states.Values),
+            correctedPlayerCounter.Count(states.Values),
             config.HardMaxHorizontalSpeed,
             config.MaxChunkColumnsPerTick,
-            new TeleportGraceCounter().Count(states.Values),
+            teleportGraceCounter.Count(states.Values),
             config.AllowTeleportGraceHeuristic);
     }
 
@@ -60,7 +71,7 @@ public sealed class ChunkQueueTweaksModSystem : ModSystem
             return false;
         }
 
-        config = new ConfigLoader().Load(api);
+        config = configLoader.Load(api);
         api.Event.UnregisterGameTickListener(listenerId);
         listenerId = api.Event.RegisterGameTickListener(OnTick, OnTickError, config.TickIntervalMs);
         return true;
@@ -73,7 +84,7 @@ public sealed class ChunkQueueTweaksModSystem : ModSystem
             return;
         }
 
-        globalPressure = new TickProcessor().Process(api, states, config, globalPressure, dt);
+        globalPressure = tickProcessor.Process(api, states, config, globalPressure, dt);
     }
 
     private void OnTickError(Exception exception)

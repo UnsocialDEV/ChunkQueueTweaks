@@ -7,6 +7,6 @@ internal sealed class CorrectedPlayerCounter
 {
     public int Count(IEnumerable<PlayerThrottleState> states)
     {
-        return states.Count(state => state.CorrectedLastTick || state.CorrectionCooldownMs > 0);
+        return states.Count(state => state.Correction.CorrectedLastTick || state.Correction.CorrectionCooldownMs > 0);
     }
 }

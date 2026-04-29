@@ -11,17 +11,18 @@ internal sealed class HardMovementViolationEvaluator
             return new HardMovementViolation(true, "hard speed limit exceeded");
         }
 
-        if (state.HasSafePosition)
+        var safePosition = state.SafePosition;
+        if (safePosition.HasSafePosition)
         {
-            var chunkDeltaX = Math.Abs(sample.ChunkX - state.LastSafeChunkX);
-            var chunkDeltaZ = Math.Abs(sample.ChunkZ - state.LastSafeChunkZ);
+            var chunkDeltaX = Math.Abs(sample.ChunkX - safePosition.LastSafeChunkX);
+            var chunkDeltaZ = Math.Abs(sample.ChunkZ - safePosition.LastSafeChunkZ);
             if (Math.Max(chunkDeltaX, chunkDeltaZ) > config.MaxChunkColumnsPerTick)
             {
                 return new HardMovementViolation(true, "chunk column jump exceeded");
             }
         }
 
-        if (sample.Speed > config.MaxSafeHorizontalSpeed && state.ExtremeViolationScore >= config.MaxExtremeViolationScore)
+        if (sample.Speed > config.MaxSafeHorizontalSpeed && state.Pressure.ExtremeViolationScore >= config.MaxExtremeViolationScore)
         {
             return new HardMovementViolation(true, "repeated high-speed movement");
         }

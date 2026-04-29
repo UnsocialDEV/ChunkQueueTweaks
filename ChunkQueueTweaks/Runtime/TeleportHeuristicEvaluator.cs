@@ -4,7 +4,7 @@ internal sealed class TeleportHeuristicEvaluator
 {
     public TeleportSignal Evaluate(MovementSample sample, PlayerThrottleState state, ChunkQueueTweaksConfig config)
     {
-        if (!config.AllowTeleportGraceHeuristic || state.TeleportHeuristicCooldownMs > 0 || state.CorrectionCooldownMs > 0)
+        if (!config.AllowTeleportGraceHeuristic || state.Teleport.TeleportHeuristicCooldownMs > 0 || state.Correction.CorrectionCooldownMs > 0)
         {
             return new TeleportSignal(false, string.Empty);
         }
@@ -14,7 +14,7 @@ internal sealed class TeleportHeuristicEvaluator
             return new TeleportSignal(false, string.Empty);
         }
 
-        if (state.ExtremeViolationScore > config.TeleportMaxRecentViolationScore || state.AbuseScore > config.TeleportMaxRecentViolationScore)
+        if (state.Pressure.ExtremeViolationScore > config.TeleportMaxRecentViolationScore || state.Pressure.AbuseScore > config.TeleportMaxRecentViolationScore)
         {
             return new TeleportSignal(false, string.Empty);
         }

@@ -7,6 +7,6 @@ internal sealed class TeleportGraceCounter
 {
     public int Count(IEnumerable<PlayerThrottleState> states)
     {
-        return states.Count(state => state.TeleportGraceMs > 0);
+        return states.Count(state => state.Teleport.TeleportGraceMs > 0);
     }
 }
