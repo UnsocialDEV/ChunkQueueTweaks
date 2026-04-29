@@ -14,7 +14,7 @@ The mod does not require client installation.
 - Last safe server-approved position tracking.
 - Chunk-column jump detection.
 - Repeated high-speed abuse tracking.
-- Legitimate teleport support for translocators, `/tpa`, and teleport mods.
+- Legitimate teleport support for Vintage Story teleport events, dimension changes, translocators, and admin teleports.
 - Admin exemption by privilege.
 - Runtime config reload command.
 - Lightweight tick loop with no chunk dictionary scans.
@@ -88,7 +88,7 @@ The mod accepts teleport arrivals from:
 
 - Vintage Story engine teleport flags: `Entity.Teleporting` and `Entity.IsTeleport`.
 - Dimension changes.
-- A conservative one-shot teleport heuristic for `/tpa` or teleport mods that do not expose a dedicated signal.
+- A conservative one-shot teleport heuristic for legitimate server-side teleports that do not expose a dedicated engine signal.
 
 When a teleport is accepted:
 
@@ -211,7 +211,7 @@ The file is created automatically with defaults if it does not exist.
 | `ReduceChunkRadiusOnCorrection` | Whether to reduce chunk radius after correction. |
 | `CorrectiveChunkSentRadius` | Temporary chunk sent radius used after correction. |
 | `WarningCooldownSeconds` | Minimum time between player warning messages. |
-| `AllowTeleportGraceHeuristic` | Allows one-shot `/tpa`-style teleports without engine flags. |
+| `AllowTeleportGraceHeuristic` | Allows one-shot server-side teleports without engine flags. |
 | `TeleportGraceCooldownMs` | Cooldown before another heuristic teleport can be accepted. |
 | `TeleportArrivalGraceMs` | Status grace window after an accepted teleport. |
 | `TeleportMinimumDistance` | Minimum jump distance required for the teleport heuristic. |
@@ -238,13 +238,13 @@ Try:
 3. Raise `ExtremeSpeed`.
 4. Raise `MinThrottleFactor` closer to `1.0`.
 
-### If `/tpa` or teleport mods are corrected incorrectly
+### If legitimate Vintage Story teleports are corrected incorrectly
 
 Try:
 
 1. Keep `AllowTeleportGraceHeuristic` set to `true`.
 2. Lower `TeleportMinimumDistance` if teleports are short.
-3. Increase `TeleportGraceCooldownMs` only if repeated legitimate teleports need more spacing.
+3. Increase `TeleportGraceCooldownMs` only if repeated legitimate server-side teleports need more spacing.
 4. Confirm the player was not already being corrected or flagged for speed abuse before teleporting.
 
 ## Build Requirements
@@ -376,8 +376,8 @@ After installing or tuning, test these scenarios:
 - Normal walking is unaffected.
 - Sprinting is unaffected.
 - Falling and jumping are not corrected.
-- Legitimate `/tpa` works.
 - Translocators work.
+- Legitimate server-side teleports work.
 - Admin teleports work for exempt admins.
 - A hacked speed client cannot keep advancing across terrain.
 - Repeated large jumps are corrected after the teleport heuristic is consumed.
@@ -404,7 +404,7 @@ dotnet build .\ChunkQueueTweaks.slnx -c Release
 
 - Ensure `AllowTeleportGraceHeuristic` is `true`.
 - Increase `TeleportGraceCooldownMs` only if legitimate teleports are close together.
-- Lower `TeleportMinimumDistance` if your teleport system uses short hops.
+- Lower `TeleportMinimumDistance` if legitimate server-side teleports use short hops.
 - Confirm the player is not already being flagged for speed abuse before teleporting.
 
 ### Hacked movement is still too effective
