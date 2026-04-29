@@ -446,4 +446,4 @@ The movement tick loop is also designed to avoid unnecessary allocation pressure
 
 ## License
 
-No license has been selected yet.
+Apache 2.0 License
