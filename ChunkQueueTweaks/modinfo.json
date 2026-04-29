@@ -4,7 +4,7 @@
   "name": "ChunkQueueTweaks",
   "authors": [ "Unsocial" ],
   "description": "Server-side chunk streaming pressure throttle that softly limits excessive player chunk request generation.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "side": "Server",
   "requiredOnClient": false,
   "dependencies": {
